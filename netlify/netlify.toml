@@ -1,0 +1,32 @@
+# Netlify configuration file
+
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+# Function-specific settings
+[functions]
+  node_bundler = "esbuild"
+
+# Headers for security and CORS
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Redirects for API endpoints
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+  force = true
+
+# Handle OPTIONS requests for CORS
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  conditions = {Method = ["OPTIONS"]}
