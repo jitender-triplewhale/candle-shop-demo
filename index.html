@@ -6,8 +6,8 @@
   <title>Candle Shop Demo</title>
 
   <!-- Preconnect for Triple Whale Pixel dependencies -->
-  <link rel='preconnect dns-prefetch' href='https://api.config-security.com/' crossorigin />
-  <link rel='preconnect dns-prefetch' href='https://conf.config-security.com/' crossorigin />
+  <link rel="preconnect dns-prefetch" href="https://api.config-security.com/" crossorigin />
+  <link rel="preconnect dns-prefetch" href="https://conf.config-security.com/" crossorigin />
 
   <!-- Triple Whale Base Pixel Snippet -->
   <script>
@@ -121,8 +121,12 @@
     const orderSuccess = document.getElementById('order-success');
 
     function callTriplePixel(action, payload) {
-      if (typeof TriplePixel === 'function') TriplePixel(action, payload);
-      else setTimeout(() => callTriplePixel(action, payload), 200);
+      if (typeof TriplePixel === 'function') {
+        TriplePixel(action, payload);
+      } else {
+        // If the Pixel library hasn’t loaded yet, retry after 200ms
+        setTimeout(() => callTriplePixel(action, payload), 200);
+      }
     }
 
     function initStore() {
@@ -131,11 +135,18 @@
       checkoutBtn.addEventListener('click', showCheckout);
       checkoutForm.addEventListener('submit', handleCheckout);
 
+      // -------------------------------------------------------
+      // FIRING “ViewedProduct” here (exactly like AddToCart/custom)
+      // -------------------------------------------------------
+      // Take the very first product in the grid and tell TriplePixel the user “viewed” it:
       const firstProduct = products[0];
       window.TriplePixelData.product = firstProduct;
+      callTriplePixel('ViewedProduct', { product: firstProduct });
+
+      // We still fire pageLoad + custom as before:
       callTriplePixel('pageLoad', { product: firstProduct });
-      // Custom event: store initialized
       callTriplePixel('custom', 'storeInitialized', { productCount: products.length });
+      // -------------------------------------------------------
     }
 
     function renderProducts() {
@@ -160,15 +171,14 @@
       if (existing) existing.quantity += 1;
       else cart.push({ ...product, quantity: 1 });
 
+      // EXACTLY as you did before:
       callTriplePixel('AddToCart', { item: product.id, q: 1, v: product.variant });
-      // Custom event: product added
       callTriplePixel('custom', 'productAdded', { productId: product.id, quantity: existing ? existing.quantity : 1 });
       renderCart();
     };
 
     window.removeFromCart = function(productId) {
       cart = cart.filter(item => item.id !== productId);
-      // Custom event: product removed
       callTriplePixel('custom', 'removeFromCart', { productId });
       renderCart();
     };
@@ -177,7 +187,6 @@
       const item = cart.find(it => it.id === productId);
       if (!item) return;
       item.quantity = Math.max(1, item.quantity + delta);
-      // Custom event: quantity updated
       callTriplePixel('custom', 'quantityUpdated', { productId, newQuantity: item.quantity });
       renderCart();
     };
@@ -218,7 +227,6 @@
 
     function showCheckout() {
       checkoutSection.style.display = 'block';
-      // Custom event: checkout started
       callTriplePixel('custom', 'beginCheckout', { items: cart.map(it => ({ productId: it.id, quantity: it.quantity })) });
       window.scrollTo({ top: checkoutSection.offsetTop, behavior: 'smooth' });
     }
@@ -230,7 +238,6 @@
       const orderId = 'order_' + Date.now();
       const revenue = cart.reduce((sum, it) => sum + it.price * it.quantity, 0);
 
-      // Custom event: order placed
       callTriplePixel('custom', 'orderPlaced', { orderId, revenue });
       callTriplePixel('purchase', {
         eventId: orderId,
@@ -248,22 +255,46 @@
         const url = window.location.hostname.includes('github.io')
           ? 'https://warm-puppy-8982da.netlify.app/.netlify/functions/orders'
           : '/.netlify/functions/orders';
-        const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customer: { email: data.email, id: btoa(data.email), phone: data.phone }, shop: 'demowebsite.com', order_id: orderId, order_revenue: revenue, created_at: new Date().toISOString(), currency: 'USD' }) });
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customer: { email: data.email, id: btoa(data.email), phone: data.phone },
+            shop: 'demowebsite.com',
+            order_id: orderId,
+            order_revenue: revenue,
+            created_at: new Date().toISOString(),
+            currency: 'USD'
+          })
+        });
         if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
         await resp.json();
 
-        // Show success
         orderSuccess.style.display = 'block';
         callTriplePixel('custom', 'orderSuccess', { orderId, revenue });
-        cart = []; renderCart(); checkoutSection.style.display = 'none'; checkoutForm.reset(); window.scrollTo({ top: 0, behavior: 'smooth' });
+        cart = [];
+        renderCart();
+        checkoutSection.style.display = 'none';
+        checkoutForm.reset();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         setTimeout(() => orderSuccess.style.display = 'none', 5000);
       } catch (err) {
         console.error(err);
         callTriplePixel('custom', 'checkoutError', { error: err.message });
         const msg = document.createElement('div');
-        msg.style.backgroundColor = '#f44336'; msg.style.color = 'white'; msg.style.padding = '15px'; msg.style.marginBottom = '20px'; msg.style.borderRadius = '4px';
-        msg.innerHTML = `<h3>Order Submission Error</h3><p>We couldn't process your order. Please try again later.</p><p>Error details: ${err.message}</p>`;
-        checkoutForm.prepend(msg); window.scrollTo({ top: msg.offsetTop - 20, behavior: 'smooth' }); setTimeout(() => msg.remove(), 10000);
+        msg.style.backgroundColor = '#f44336';
+        msg.style.color = 'white';
+        msg.style.padding = '15px';
+        msg.style.marginBottom = '20px';
+        msg.style.borderRadius = '4px';
+        msg.innerHTML = `
+          <h3>Order Submission Error</h3>
+          <p>We couldn't process your order. Please try again later.</p>
+          <p>Error details: ${err.message}</p>
+        `;
+        checkoutForm.prepend(msg);
+        window.scrollTo({ top: msg.offsetTop - 20, behavior: 'smooth' });
+        setTimeout(() => msg.remove(), 10000);
       }
     }
 
