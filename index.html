@@ -6,8 +6,8 @@
   <title>Candle Shop Demo</title>
 
   <!-- Preconnect for Triple Whale Pixel dependencies -->
-  <link rel="preconnect dns-prefetch" href="https://api.config-security.com/" crossorigin />
-  <link rel="preconnect dns-prefetch" href="https://conf.config-security.com/" crossorigin />
+  <link rel='preconnect dns-prefetch' href='https://api.config-security.com/' crossorigin />
+  <link rel='preconnect dns-prefetch' href='https://conf.config-security.com/' crossorigin />
 
   <!-- Triple Whale Base Pixel Snippet -->
   <script>
@@ -36,8 +36,8 @@
     .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.5rem; }
     .product-card { border: 1px solid #eee; border-radius: var(--border-radius); padding: 1rem; transition: transform 0.2s, box-shadow 0.2s; }
     .product-card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-    /* Make the image div clickable (cursor: pointer) */
     .product-image { height: 150px; background-color: #f9f9f9; border-radius: var(--border-radius); margin-bottom: 1rem; display: flex; justify-content: center; align-items: center; font-size: 3rem; color: var(--accent-color); cursor: pointer; }
+    .product-image:hover { background-color: #f0f0f0; }
     .product-name { font-weight: bold; margin-bottom: 0.5rem; }
     .product-price { color: var(--primary-color); font-weight: bold; margin-bottom: 1rem; }
     button { background-color: var(--primary-color); color: white; border: none; padding: 0.5rem 1rem; border-radius: var(--border-radius); cursor: pointer; font-size: 1rem; transition: background-color 0.2s; }
@@ -122,52 +122,20 @@
     const orderSuccess = document.getElementById('order-success');
 
     function callTriplePixel(action, payload) {
-      if (typeof TriplePixel === 'function') {
-        TriplePixel(action, payload);
-      } else {
-        // If the library hasn’t loaded yet, retry after 200ms
-        setTimeout(() => callTriplePixel(action, payload), 200);
-      }
+      if (typeof TriplePixel === 'function') TriplePixel(action, payload);
+      else setTimeout(() => callTriplePixel(action, payload), 200);
     }
 
-    // 1) New function: fire ViewedProduct only when the user clicks the image
-    function viewProduct(productId) {
-      const product = products.find(p => p.id === productId);
-      if (!product) return;
-
-      // Set id, name, price on TriplePixelData
-      window.TriplePixelData = window.TriplePixelData || {};
-      window.TriplePixelData.product = {
-        id: product.id,
-        name: product.name,
-        price: product.price.toFixed(2)
-      };
-
-      // Fire ViewedProduct with exactly those three fields
-      callTriplePixel('ViewedProduct', {
-        product: {
-          id: product.id,
-          name: product.name,
-          price: product.price.toFixed(2)
-        }
-      });
-    }
-
-    // 2) No more “fire on page load”—we only fire on image-click.
     function initStore() {
       renderProducts();
       renderCart();
       checkoutBtn.addEventListener('click', showCheckout);
       checkoutForm.addEventListener('submit', handleCheckout);
 
-      // Fire pageLoad + storeInitialized as before (optional)
       const firstProduct = products[0];
-      window.TriplePixelData.product = { 
-        id: firstProduct.id, 
-        name: firstProduct.name, 
-        price: firstProduct.price.toFixed(2) 
-      };
-      callTriplePixel('pageLoad', { product: window.TriplePixelData.product });
+      window.TriplePixelData.product = firstProduct;
+      callTriplePixel('pageLoad', { product: firstProduct });
+      // Custom event: store initialized
       callTriplePixel('custom', 'storeInitialized', { productCount: products.length });
     }
 
@@ -177,14 +145,7 @@
         const card = document.createElement('div');
         card.className = 'product-card';
         card.innerHTML = `
-          <!-- 3) The image div is now clickable -->
-          <div 
-            class="product-image" 
-            onclick="viewProduct('${product.id}')"
-          >
-            🕯️
-          </div>
-
+          <div class="product-image" onclick="viewProduct('${product.id}')">🕯️</div>
           <div class="product-name">${product.name}</div>
           <div class="product-price">$${product.price.toFixed(2)}</div>
           <p>${product.description}</p>
@@ -194,20 +155,34 @@
       });
     }
 
+    window.viewProduct = function(productId) {
+      const product = products.find(p => p.id === productId);
+      if (product) {
+        window.TriplePixelData = window.TriplePixelData || {};
+        window.TriplePixelData.product = {
+          id: product.id,
+          name: product.name,
+          price: product.price.toString()
+        };
+        callTriplePixel('ViewedProduct', { product: window.TriplePixelData.product });
+      }
+    };
+
     window.addToCart = function(productId) {
       const product = products.find(p => p.id === productId);
       const existing = cart.find(item => item.id === productId);
       if (existing) existing.quantity += 1;
       else cart.push({ ...product, quantity: 1 });
 
-      // Unchanged: AddToCart + custom(productAdded)
       callTriplePixel('AddToCart', { item: product.id, q: 1, v: product.variant });
+      // Custom event: product added
       callTriplePixel('custom', 'productAdded', { productId: product.id, quantity: existing ? existing.quantity : 1 });
       renderCart();
     };
 
     window.removeFromCart = function(productId) {
       cart = cart.filter(item => item.id !== productId);
+      // Custom event: product removed
       callTriplePixel('custom', 'removeFromCart', { productId });
       renderCart();
     };
@@ -216,6 +191,7 @@
       const item = cart.find(it => it.id === productId);
       if (!item) return;
       item.quantity = Math.max(1, item.quantity + delta);
+      // Custom event: quantity updated
       callTriplePixel('custom', 'quantityUpdated', { productId, newQuantity: item.quantity });
       renderCart();
     };
@@ -256,6 +232,7 @@
 
     function showCheckout() {
       checkoutSection.style.display = 'block';
+      // Custom event: checkout started
       callTriplePixel('custom', 'beginCheckout', { items: cart.map(it => ({ productId: it.id, quantity: it.quantity })) });
       window.scrollTo({ top: checkoutSection.offsetTop, behavior: 'smooth' });
     }
@@ -267,6 +244,7 @@
       const orderId = 'order_' + Date.now();
       const revenue = cart.reduce((sum, it) => sum + it.price * it.quantity, 0);
 
+      // Custom event: order placed
       callTriplePixel('custom', 'orderPlaced', { orderId, revenue });
       callTriplePixel('purchase', {
         eventId: orderId,
@@ -284,46 +262,22 @@
         const url = window.location.hostname.includes('github.io')
           ? 'https://warm-puppy-8982da.netlify.app/.netlify/functions/orders'
           : '/.netlify/functions/orders';
-        const resp = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            customer: { email: data.email, id: btoa(data.email), phone: data.phone },
-            shop: 'demowebsite.com',
-            order_id: orderId,
-            order_revenue: revenue,
-            created_at: new Date().toISOString(),
-            currency: 'USD'
-          })
-        });
+        const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customer: { email: data.email, id: btoa(data.email), phone: data.phone }, shop: 'demowebsite.com', order_id: orderId, order_revenue: revenue, created_at: new Date().toISOString(), currency: 'USD' }) });
         if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
         await resp.json();
 
+        // Show success
         orderSuccess.style.display = 'block';
         callTriplePixel('custom', 'orderSuccess', { orderId, revenue });
-        cart = [];
-        renderCart();
-        checkoutSection.style.display = 'none';
-        checkoutForm.reset();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        cart = []; renderCart(); checkoutSection.style.display = 'none'; checkoutForm.reset(); window.scrollTo({ top: 0, behavior: 'smooth' });
         setTimeout(() => orderSuccess.style.display = 'none', 5000);
       } catch (err) {
         console.error(err);
         callTriplePixel('custom', 'checkoutError', { error: err.message });
         const msg = document.createElement('div');
-        msg.style.backgroundColor = '#f44336';
-        msg.style.color = 'white';
-        msg.style.padding = '15px';
-        msg.style.marginBottom = '20px';
-        msg.style.borderRadius = '4px';
-        msg.innerHTML = `
-          <h3>Order Submission Error</h3>
-          <p>We couldn't process your order. Please try again later.</p>
-          <p>Error details: ${err.message}</p>
-        `;
-        checkoutForm.prepend(msg);
-        window.scrollTo({ top: msg.offsetTop - 20, behavior: 'smooth' });
-        setTimeout(() => msg.remove(), 10000);
+        msg.style.backgroundColor = '#f44336'; msg.style.color = 'white'; msg.style.padding = '15px'; msg.style.marginBottom = '20px'; msg.style.borderRadius = '4px';
+        msg.innerHTML = `<h3>Order Submission Error</h3><p>We couldn't process your order. Please try again later.</p><p>Error details: ${err.message}</p>`;
+        checkoutForm.prepend(msg); window.scrollTo({ top: msg.offsetTop - 20, behavior: 'smooth' }); setTimeout(() => msg.remove(), 10000);
       }
     }
 
