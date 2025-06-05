@@ -145,9 +145,9 @@
         const card = document.createElement('div');
         card.className = 'product-card';
         card.innerHTML = `
-          <div class="product-image" onclick="viewProduct('${product.id}')">🕯️</div>
+          <div class="product-image" onclick="viewProduct('${product.id}')" style="cursor: pointer;" title="Click to view product">🕯️</div>
           <div class="product-name">${product.name}</div>
-          <div class="product-price">$${product.price.toFixed(2)}</div>
+          <div class="product-price">${product.price.toFixed(2)}</div>
           <p>${product.description}</p>
           <button onclick="addToCart('${product.id}')">Add to Cart</button>
         `;
@@ -164,7 +164,8 @@
           name: product.name,
           price: product.price.toString()
         };
-        callTriplePixel('ViewedProduct', { product: window.TriplePixelData.product });
+        TriplePixel('ViewedProduct', { product: window.TriplePixelData.product });
+        console.log('ViewedProduct event fired for:', product.name);
       }
     };
 
