@@ -12,7 +12,21 @@
   <!-- Triple Whale Base Pixel Snippet -->
   <script>
   /* >> TriplePixel :: start*/
-  window.TriplePixelData={TripleName:"demowebsite.com",ver:"2.17",plat:"custom-msp",isHeadless:true},function(W,H,A,L,E,_,B,N){function O(U,T,P,H,R){void 0===R&&(R=!1),H=new XMLHttpRequest,P?(H.open("POST",U,!0),H.setRequestHeader("Content-Type","text/plain")):H.open("GET",U,!0),H.send(JSON.stringify(P||{})),H.onreadystatechange=function(){4===H.readyState&&200===H.status?(R=H.responseText,U.includes("/first")?eval(R):P||(N[B]=R)):(299<H.status||H.status<200)&&T&&!R&&(R=!0,O(U,T-1,P))}}if(N=window,!N[H+"sn"]){N[H+"sn"]=1,L=function(){return Date.now().toString(36)+"_"+Math.random().toString(36)};try{A.setItem(H,1+(0|A.getItem(H)||0)),(E=JSON.parse(A.getItem(H+"U")||"[]")).push({u:location.href,r:document.referrer,t:Date.now(),id:L()}),A.setItem(H+"U",JSON.stringify(E))}catch(e){}var i,m,p;A.getItem('"!nC`')||(_=A,A=N,A[H]||(E=A[H]=function(t,e,a){return void 0===a&&(a=[]),"State"==t?E.s:(W=L(),(E._q=E._q||[]).push([W,t,e].concat(a)),W)},E.s="Installed",E._q=[],E.ch=W,B="configSecurityConfModel",N[B]=1,O("https://conf.config-security.com/model",5),i=L(),m=A[atob("c2NyZWVu")],_.setItem("di_pmt_wt",i),p={id:i,action:"profile",avatar:_.getItem("auth-security_rand_salt_"),time:m[atob("d2lkdGg=")]+":"+m[atob("aGVpZ2h0")],host:A.TriplePixelData.TripleName,plat:A.TriplePixelData.plat,url:window.location.href.slice(0,500),ref:document.referrer,ver:A.TriplePixelData.ver},O("https://api.config-security.com/event",5,p),O("https://api.config-security.com/first?host=demowebsite.com&plat=custom-msp",5)))}}("","TriplePixel",localStorage);
+  /* Note: The product property in TriplePixelData should be dynamically populated on product pages
+     with the current product's details: { id, name, price, variant }
+     Only one product value should be passed per page
+     
+     Example for a product page:
+     window.TriplePixelData={
+       TripleName:"demowebsite.com",
+       ver:"2.17",
+       plat:"custom-msp",
+       isHeadless:true,
+       product:{ id: '48269676624115', name: 'Top Knot Messy Bun Ponytail Holder', price: '42.99', variant: '8218652206806' },
+       search:null
+     }
+  */
+  window.TriplePixelData={TripleName:"demowebsite.com",ver:"2.17",plat:"custom-msp",isHeadless:true,product:null,search:null},function(W,H,A,L,E,_,B,N){function O(U,T,P,H,R){void 0===R&&(R=!1),H=new XMLHttpRequest,P?(H.open("POST",U,!0),H.setRequestHeader("Content-Type","text/plain")):H.open("GET",U,!0),H.send(JSON.stringify(P||{})),H.onreadystatechange=function(){4===H.readyState&&200===H.status?(R=H.responseText,U.includes("/first")?eval(R):P||(N[B]=R)):(299<H.status||H.status<200)&&T&&!R&&(R=!0,O(U,T-1,P))}}if(N=window,!N[H+"sn"]){N[H+"sn"]=1,L=function(){return Date.now().toString(36)+"_"+Math.random().toString(36)};try{A.setItem(H,1+(0|A.getItem(H)||0)),(E=JSON.parse(A.getItem(H+"U")||"[]")).push({u:location.href,r:document.referrer,t:Date.now(),id:L()}),A.setItem(H+"U",JSON.stringify(E))}catch(e){}var i,m,p;A.getItem('"!nC`')||(_=A,A=N,A[H]||(E=A[H]=function(t,e,a){return void 0===a&&(a=[]),"State"==t?E.s:(W=L(),(E._q=E._q||[]).push([W,t,e].concat(a)),W)},E.s="Installed",E._q=[],E.ch=W,B="configSecurityConfModel",N[B]=1,O("https://conf.config-security.com/model",5),i=L(),m=A[atob("c2NyZWVu")],_.setItem("di_pmt_wt",i),p={id:i,action:"profile",avatar:_.getItem("auth-security_rand_salt_"),time:m[atob("d2lkdGg=")]+":"+m[atob("aGVpZ2h0")],host:A.TriplePixelData.TripleName,plat:A.TriplePixelData.plat,url:window.location.href.slice(0,500),ref:document.referrer,ver:A.TriplePixelData.ver},O("https://api.config-security.com/event",5,p),O("https://api.config-security.com/first?host=demowebsite.com&plat=custom-msp",5)))}}("","TriplePixel",localStorage);
   /* << TriplePixel :: end*/
   </script>
 
@@ -104,6 +118,7 @@
 
   <script>
     // Define products
+    // Note: Each product has id, name, price, and variant fields as required by TriplePixel
     const products = [
       { id: 'c1', name: 'Lavender Bliss', price: 12.99, variant: 'v1', description: 'Soothing lavender scent to help you relax and unwind.' },
       { id: 'c2', name: 'Vanilla Dream', price: 10.99, variant: 'v2', description: 'Sweet vanilla fragrance for a warm, cozy atmosphere.' },
@@ -132,9 +147,8 @@
       checkoutBtn.addEventListener('click', showCheckout);
       checkoutForm.addEventListener('submit', handleCheckout);
 
-      const firstProduct = products[0];
-      window.TriplePixelData.product = firstProduct;
-      callTriplePixel('pageLoad', { product: firstProduct });
+      // Page load event
+      callTriplePixel('pageLoad', {});
       // Custom event: store initialized
       callTriplePixel('custom', 'storeInitialized', { productCount: products.length });
     }
@@ -158,11 +172,11 @@
     window.viewProduct = function(productId) {
       const product = products.find(p => p.id === productId);
       if (product) {
-        window.TriplePixelData = window.TriplePixelData || {};
         window.TriplePixelData.product = {
           id: product.id,
           name: product.name,
-          price: product.price.toString()
+          price: product.price.toString(),
+          variant: product.variant
         };
         TriplePixel('ViewedProduct', { product: window.TriplePixelData.product });
         console.log('ViewedProduct event fired for:', product.name);
@@ -283,6 +297,23 @@
     }
 
     initStore();
+
+    // Simulate being on a product page by setting the first product as default
+    // In a real implementation, this would be populated server-side with the current product's data
+    if (location.pathname === '/' || location.pathname === '/index.html') {
+      // This is the product listing page, so no default product
+      window.TriplePixelData.product = null;
+    } else {
+      // On a real product page, you would populate this with the current product's data
+      // For demo purposes, we'll leave it null on the listing page
+      window.TriplePixelData.product = null;
+    }
+    
+    // Log the current state for debugging
+    console.log('TriplePixelData initialized:', {
+      product: window.TriplePixelData.product,
+      search: window.TriplePixelData.search
+    });
   </script>
 </body>
 </html>
