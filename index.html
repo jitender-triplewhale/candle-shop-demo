@@ -36,7 +36,8 @@
     .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.5rem; }
     .product-card { border: 1px solid #eee; border-radius: var(--border-radius); padding: 1rem; transition: transform 0.2s, box-shadow 0.2s; }
     .product-card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-    .product-image { height: 150px; background-color: #f9f9f9; border-radius: var(--border-radius); margin-bottom: 1rem; display: flex; justify-content: center; align-items: center; font-size: 3rem; color: var(--accent-color); }
+    /* Make the image div clickable (cursor: pointer) */
+    .product-image { height: 150px; background-color: #f9f9f9; border-radius: var(--border-radius); margin-bottom: 1rem; display: flex; justify-content: center; align-items: center; font-size: 3rem; color: var(--accent-color); cursor: pointer; }
     .product-name { font-weight: bold; margin-bottom: 0.5rem; }
     .product-price { color: var(--primary-color); font-weight: bold; margin-bottom: 1rem; }
     button { background-color: var(--primary-color); color: white; border: none; padding: 0.5rem 1rem; border-radius: var(--border-radius); cursor: pointer; font-size: 1rem; transition: background-color 0.2s; }
@@ -124,29 +125,50 @@
       if (typeof TriplePixel === 'function') {
         TriplePixel(action, payload);
       } else {
-        // If the Pixel library hasn’t loaded yet, retry after 200ms
+        // If the library hasn’t loaded yet, retry after 200ms
         setTimeout(() => callTriplePixel(action, payload), 200);
       }
     }
 
+    // 1) New function: fire ViewedProduct only when the user clicks the image
+    function viewProduct(productId) {
+      const product = products.find(p => p.id === productId);
+      if (!product) return;
+
+      // Set id, name, price on TriplePixelData
+      window.TriplePixelData = window.TriplePixelData || {};
+      window.TriplePixelData.product = {
+        id: product.id,
+        name: product.name,
+        price: product.price.toFixed(2)
+      };
+
+      // Fire ViewedProduct with exactly those three fields
+      callTriplePixel('ViewedProduct', {
+        product: {
+          id: product.id,
+          name: product.name,
+          price: product.price.toFixed(2)
+        }
+      });
+    }
+
+    // 2) No more “fire on page load”—we only fire on image-click.
     function initStore() {
       renderProducts();
       renderCart();
       checkoutBtn.addEventListener('click', showCheckout);
       checkoutForm.addEventListener('submit', handleCheckout);
 
-      // -------------------------------------------------------
-      // FIRING “ViewedProduct” here (exactly like AddToCart/custom)
-      // -------------------------------------------------------
-      // Take the very first product in the grid and tell TriplePixel the user “viewed” it:
+      // Fire pageLoad + storeInitialized as before (optional)
       const firstProduct = products[0];
-      window.TriplePixelData.product = firstProduct;
-      callTriplePixel('ViewedProduct', { product: firstProduct });
-
-      // We still fire pageLoad + custom as before:
-      callTriplePixel('pageLoad', { product: firstProduct });
+      window.TriplePixelData.product = { 
+        id: firstProduct.id, 
+        name: firstProduct.name, 
+        price: firstProduct.price.toFixed(2) 
+      };
+      callTriplePixel('pageLoad', { product: window.TriplePixelData.product });
       callTriplePixel('custom', 'storeInitialized', { productCount: products.length });
-      // -------------------------------------------------------
     }
 
     function renderProducts() {
@@ -155,7 +177,14 @@
         const card = document.createElement('div');
         card.className = 'product-card';
         card.innerHTML = `
-          <div class="product-image">🕯️</div>
+          <!-- 3) The image div is now clickable -->
+          <div 
+            class="product-image" 
+            onclick="viewProduct('${product.id}')"
+          >
+            🕯️
+          </div>
+
           <div class="product-name">${product.name}</div>
           <div class="product-price">$${product.price.toFixed(2)}</div>
           <p>${product.description}</p>
@@ -171,7 +200,7 @@
       if (existing) existing.quantity += 1;
       else cart.push({ ...product, quantity: 1 });
 
-      // EXACTLY as you did before:
+      // Unchanged: AddToCart + custom(productAdded)
       callTriplePixel('AddToCart', { item: product.id, q: 1, v: product.variant });
       callTriplePixel('custom', 'productAdded', { productId: product.id, quantity: existing ? existing.quantity : 1 });
       renderCart();
